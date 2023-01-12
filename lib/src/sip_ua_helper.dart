@@ -179,15 +179,26 @@ class SIPUAHelper extends EventManager {
       _ua!.on(EventNewRTCSession(), (EventNewRTCSession event) {
         logger.d('newRTCSession => $event');
         RTCSession session = event.session!;
-        if (session.direction == 'incoming') {
-          // Set event handlers.
-          session.addAllEventHandlers(
-              buildCallOptions()['eventHandlers'] as EventManager);
+        if (_calls.length < 1) {
+          if (session.direction == 'incoming') {
+            // Set event handlers.
+            session.addAllEventHandlers(
+                buildCallOptions()['eventHandlers'] as EventManager);
+          }
+          _calls[event.id] =
+              Call(event.id, session, CallStateEnum.CALL_INITIATION);
+          _notifyCallStateListeners(
+              event, CallState(CallStateEnum.CALL_INITIATION));
         }
-        _calls[event.id] =
-            Call(event.id, session, CallStateEnum.CALL_INITIATION);
-        _notifyCallStateListeners(
-            event, CallState(CallStateEnum.CALL_INITIATION));
+        // if (session.direction == 'incoming') {
+        //   // Set event handlers.
+        //   session.addAllEventHandlers(
+        //       buildCallOptions()['eventHandlers'] as EventManager);
+        // }
+        // _calls[event.id] =
+        //     Call(event.id, session, CallStateEnum.CALL_INITIATION);
+        // _notifyCallStateListeners(
+        //     event, CallState(CallStateEnum.CALL_INITIATION));
       });
 
       _ua!.on(EventNewMessage(), (EventNewMessage event) {
