@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:logger/logger.dart';
+import 'package:sip_ua/src/map_helper.dart';
 
 import 'config.dart';
 import 'constants.dart' as DartSIP_C;
@@ -62,7 +63,7 @@ class SIPUAHelper extends EventManager {
     if (_ua != null) {
       _ua!.stop();
     } else {
-      Log.w('ERROR: stop called but not started, call start first.');
+      logger.w('ERROR: stop called but not started, call start first.');
     }
   }
 
@@ -77,16 +78,20 @@ class SIPUAHelper extends EventManager {
       assert(registered, 'ERROR: you must call register first.');
       _ua!.unregister(all: all);
     } else {
-      Log.e('ERROR: unregister called, you must call start first.');
+      logger.e('ERROR: unregister called, you must call start first.');
     }
   }
 
   Future<bool> call(String target,
       {bool voiceonly = false,
       MediaStream? mediaStream,
-      List<String>? headers}) async {
+      List<String>? headers,
+      Map<String, dynamic>? customOptions}) async {
     if (_ua != null && _ua!.isConnected()) {
       Map<String, dynamic> options = buildCallOptions(voiceonly);
+      if (customOptions != null) {
+        options = MapHelper.merge(options, customOptions);
+      }
       if (mediaStream != null) {
         options['mediaStream'] = mediaStream;
       }
@@ -115,10 +120,12 @@ class SIPUAHelper extends EventManager {
 
     // Reset settings
     _settings = Settings();
-    WebSocketInterface socket = WebSocketInterface(
-        uaSettings.webSocketUrl, uaSettings.webSocketSettings);
+    WebSocketInterface socket = WebSocketInterface(uaSettings.webSocketUrl,
+        messageDelay: _settings.sip_message_delay,
+        webSocketSettings: uaSettings.webSocketSettings);
     _settings.sockets = <WebSocketInterface>[socket];
     _settings.uri = uaSettings.uri;
+    _settings.sip_message_delay = uaSettings.sip_message_delay;
     _settings.realm = uaSettings.realm;
     _settings.password = uaSettings.password;
     _settings.ha1 = uaSettings.ha1;
@@ -302,7 +309,7 @@ class SIPUAHelper extends EventManager {
       }, buildCallOptions(true));
     });
 
-    Map<String, dynamic> _defaultOptions = <String, dynamic>{
+    Map<String, dynamic> defaultOptions = <String, dynamic>{
       'eventHandlers': handlers,
       'extraHeaders': <dynamic>[],
       'pcConfig': <String, dynamic>{
@@ -345,7 +352,7 @@ class SIPUAHelper extends EventManager {
       },
       'sessionTimersExpires': 120
     };
-    return _defaultOptions;
+    return defaultOptions;
   }
 
   Message sendMessage(String target, String body,
@@ -380,16 +387,16 @@ class SIPUAHelper extends EventManager {
 
   void _notifyTransportStateListeners(TransportState state) {
     // Copy to prevent concurrent modification exception
-    var _listeners = _sipUaHelperListeners.toList();
-    for (SipUaHelperListener listener in _listeners) {
+    List<SipUaHelperListener> listeners = _sipUaHelperListeners.toList();
+    for (SipUaHelperListener listener in listeners) {
       listener.transportStateChanged(state);
     }
   }
 
   void _notifyRegistrationStateListeners(RegistrationState state) {
     // Copy to prevent concurrent modification exception
-    var _listeners = _sipUaHelperListeners.toList();
-    for (SipUaHelperListener listener in _listeners) {
+    List<SipUaHelperListener> listeners = _sipUaHelperListeners.toList();
+    for (SipUaHelperListener listener in listeners) {
       listener.registrationStateChanged(state);
     }
   }
@@ -402,24 +409,24 @@ class SIPUAHelper extends EventManager {
     }
     call.state = state.state;
     // Copy to prevent concurrent modification exception
-    var _listeners = _sipUaHelperListeners.toList();
-    for (SipUaHelperListener listener in _listeners) {
+    List<SipUaHelperListener> listeners = _sipUaHelperListeners.toList();
+    for (SipUaHelperListener listener in listeners) {
       listener.callStateChanged(call, state);
     }
   }
 
   void _notifyNewMessageListeners(SIPMessageRequest msg) {
     // Copy to prevent concurrent modification exception
-    var _listeners = _sipUaHelperListeners.toList();
-    for (SipUaHelperListener listener in _listeners) {
+    List<SipUaHelperListener> listeners = _sipUaHelperListeners.toList();
+    for (SipUaHelperListener listener in listeners) {
       listener.onNewMessage(msg);
     }
   }
 
   void _notifyNotifyListeners(EventNotify event) {
     // Copy to prevent concurrent modification exception
-    var _listeners = _sipUaHelperListeners.toList();
-    for (SipUaHelperListener listener in _listeners) {
+    List<SipUaHelperListener> listeners = _sipUaHelperListeners.toList();
+    for (SipUaHelperListener listener in listeners) {
       listener.onNewNotify(Notify(request: event.request));
     }
   }
@@ -710,6 +717,8 @@ class UaSettings {
   /// ICE Gathering Timeout, default 500ms
   int iceGatheringTimeout = 500;
 
+  /// Sip Message Delay (in millisecond) (default 0).
+  int sip_message_delay = 0;
   List<Map<String, String>> iceServers = <Map<String, String>>[
     <String, String>{'url': 'stun:stun.l.google.com:19302'},
 // turn server configuration example.

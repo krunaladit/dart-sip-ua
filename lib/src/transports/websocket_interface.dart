@@ -7,7 +7,9 @@ import 'websocket_dart_impl.dart'
     if (dart.library.js) 'websocket_web_impl.dart';
 
 class WebSocketInterface implements Socket {
-  WebSocketInterface(String url, [WebSocketSettings? webSocketSettings]) {
+  WebSocketInterface(String url,
+      {required int messageDelay, WebSocketSettings? webSocketSettings})
+      : _messageDelay = messageDelay {
     logger.d('new() [url:$url]');
     _url = url;
     dynamic parsed_url = Grammar.parse(url, 'absoluteURI');
@@ -30,6 +32,7 @@ class WebSocketInterface implements Socket {
     }
     _webSocketSettings = webSocketSettings ?? WebSocketSettings();
   }
+  final int _messageDelay;
 
   String? _url;
   String? _sip_uri;
@@ -83,7 +86,7 @@ class WebSocketInterface implements Socket {
     }
     logger.d('connecting to WebSocket $_url');
     try {
-      _ws = WebSocketImpl(_url!);
+      _ws = WebSocketImpl(_url!, _messageDelay);
 
       _ws!.onOpen = () {
         _closed = false;
@@ -106,7 +109,7 @@ class WebSocketInterface implements Socket {
           protocols: <String>[_websocket_protocol],
           webSocketSettings: _webSocketSettings);
     } catch (e, s) {
-      Log.e(e.toString(), null, s);
+      logger.e(e.toString(), null, s);
       _connected = false;
       logger.e('WebSocket $_url error: $e');
     }

@@ -1550,8 +1550,11 @@ class RTCSession extends EventManager implements Owner {
   }
 
   void _iceRestart() async {
-    Map<String, dynamic> offerConstraints =
-        _rtcOfferConstraints ?? <String, dynamic>{};
+    Map<String, dynamic> offerConstraints = _rtcOfferConstraints ??
+        <String, dynamic>{
+          'mandatory': <String, dynamic>{},
+          'optional': <dynamic>[],
+        };
     offerConstraints['mandatory']['IceRestart'] = true;
     renegotiate(offerConstraints);
   }
@@ -1608,6 +1611,18 @@ class RTCSession extends EventManager implements Owner {
     Completer<RTCSessionDescription> completer =
         Completer<RTCSessionDescription>();
 
+    constraints = constraints ??
+        <String, dynamic>{
+          'mandatory': <String, dynamic>{},
+          'optional': <dynamic>[],
+        };
+
+    List<Future<RTCSessionDescription> Function(RTCSessionDescription)>
+        modifiers = constraints['offerModifiers'] ??
+            <Future<RTCSessionDescription> Function(RTCSessionDescription)>[];
+
+    constraints['offerModifiers'] = null;
+
     if (type != 'offer' && type != 'answer') {
       completer.completeError(Exceptions.TypeError(
           'createLocalDescription() | invalid type "$type"'));
@@ -1617,7 +1632,7 @@ class RTCSession extends EventManager implements Owner {
     late RTCSessionDescription desc;
     if (type == 'offer') {
       try {
-        desc = await _connection!.createOffer(constraints!);
+        desc = await _connection!.createOffer(constraints);
       } catch (error) {
         logger.e(
             'emit "peerconnection:createofferfailed" [error:${error.toString()}]');
@@ -1626,7 +1641,7 @@ class RTCSession extends EventManager implements Owner {
       }
     } else {
       try {
-        desc = await _connection!.createAnswer(constraints!);
+        desc = await _connection!.createAnswer(constraints);
       } catch (error) {
         logger.e(
             'emit "peerconnection:createanswerfailed" [error:${error.toString()}]');
@@ -1637,6 +1652,11 @@ class RTCSession extends EventManager implements Owner {
 
     // Add 'pc.onicencandidate' event handler to resolve on last candidate.
     bool finished = false;
+
+    for (Future<RTCSessionDescription> Function(RTCSessionDescription) modifier
+        in modifiers) {
+      desc = await modifier(desc);
+    }
 
     Future<void> ready() async {
       if (!finished && _status != C.STATUS_TERMINATED) {
@@ -2354,7 +2374,7 @@ class RTCSession extends EventManager implements Owner {
           RTCSessionDescription(response.body, 'answer');
 
       try {
-        _connection!.setRemoteDescription(answer);
+        await _connection!.setRemoteDescription(answer);
       } catch (error) {
         logger.e(
             'emit "peerconnection:setremotedescriptionfailed" [error:${error.toString()}]');
@@ -2701,14 +2721,14 @@ class RTCSession extends EventManager implements Owner {
    * Correctly set the SDP direction attributes if the call is on local hold
    */
   String? _mangleOffer(String? sdpInput) {
-    if (!_localHold! && !_remoteHold!) {
+    if (!_localHold && !_remoteHold) {
       return sdpInput;
     }
 
     Map<String, dynamic> sdp = sdp_transform.parse(sdpInput!);
 
     // Local hold.
-    if (_localHold! && !_remoteHold!) {
+    if (_localHold && !_remoteHold) {
       logger.d('mangleOffer() | me on hold, mangling offer');
       for (Map<String, dynamic> m in sdp['media']) {
         if (holdMediaTypes.indexOf(m['type']) == -1) {
@@ -2724,7 +2744,7 @@ class RTCSession extends EventManager implements Owner {
       }
     }
     // Local and remote hold.
-    else if (_localHold! && _remoteHold!) {
+    else if (_localHold && _remoteHold) {
       logger.d('mangleOffer() | both on hold, mangling offer');
       for (Map<String, dynamic> m in sdp['media']) {
         if (holdMediaTypes.indexOf(m['type']) == -1) {
@@ -2734,7 +2754,7 @@ class RTCSession extends EventManager implements Owner {
       }
     }
     // Remote hold.
-    else if (_remoteHold!) {
+    else if (_remoteHold) {
       logger.d('mangleOffer() | remote on hold, mangling offer');
       for (Map<String, dynamic> m in sdp['media']) {
         if (holdMediaTypes.indexOf(m['type']) == -1) {
@@ -2756,16 +2776,16 @@ class RTCSession extends EventManager implements Owner {
   void _setLocalMediaStatus() {
     bool enableAudio = true, enableVideo = true;
 
-    if (_localHold! || _remoteHold!) {
+    if (_localHold || _remoteHold) {
       enableAudio = false;
       enableVideo = false;
     }
 
-    if (_audioMuted!) {
+    if (_audioMuted) {
       enableAudio = false;
     }
 
-    if (_videoMuted!) {
+    if (_videoMuted) {
       enableVideo = false;
     }
 
