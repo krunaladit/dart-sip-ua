@@ -473,7 +473,9 @@ class Call {
     refer.on(EventReferTrying(), (EventReferTrying data) {});
     refer.on(EventReferProgress(), (EventReferProgress data) {});
     refer.on(EventReferAccepted(), (EventReferAccepted data) {
-      _session.terminate();
+      Map<String, dynamic> options = {"cause": "refer"};
+      _session.terminate(options);
+      //_session.terminate();
     });
     refer.on(EventReferFailed(), (EventReferFailed data) {});
   }
