@@ -28,6 +28,7 @@ class SIPUAHelper extends EventManager {
   Settings _settings = Settings();
   UaSettings? _uaSettings;
   final Map<String?, Call> _calls = <String?, Call>{};
+  Map<String?, Call> get activeCalls => _calls;
 
   RegistrationState _registerState =
       RegistrationState(state: RegistrationStateEnum.NONE);
