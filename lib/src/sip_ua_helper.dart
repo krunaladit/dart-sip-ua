@@ -29,7 +29,7 @@ class SIPUAHelper extends EventManager {
   Settings _settings = Settings();
   UaSettings? _uaSettings;
   final Map<String?, Call> _calls = <String?, Call>{};
-
+  Map<String?, Call> get activeCalls => _calls;
   RegistrationState _registerState =
       RegistrationState(state: RegistrationStateEnum.NONE);
 
@@ -467,15 +467,24 @@ class Call {
     _session.answer(options);
   }
 
-  void refer(String target) {
+  void refer(String target,{String tag = ""}) {
     assert(_session != null, 'ERROR(refer): rtc session is invalid!');
     ReferSubscriber refer = _session.refer(target)!;
     refer.on(EventReferTrying(), (EventReferTrying data) {});
     refer.on(EventReferProgress(), (EventReferProgress data) {});
     refer.on(EventReferAccepted(), (EventReferAccepted data) {
-      Map<String, dynamic> options = {"cause": "refer"};
-      _session.terminate(options);
-      //_session.terminate();
+
+      if(tag == "PARK"){
+        Map<String, dynamic> options = {"cause": "park"};
+        _session.terminate(options);
+      }else if(tag == "BLIND_TRANSFER"){
+        Map<String, dynamic> options = {"cause": "blindtransfer"};
+        _session.terminate(options);
+      }
+      else{
+        _session.terminate();
+      }
+
     });
     refer.on(EventReferFailed(), (EventReferFailed data) {});
   }
