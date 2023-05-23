@@ -47,7 +47,7 @@ class Settings {
   List<WebSocketInterface>? sockets = <WebSocketInterface>[];
   int connection_recovery_max_interval = 30;
   int connection_recovery_min_interval = 2;
-
+  int max_call_limit = 2;
   /*
    * Host address.
    * Value to be set in Via sent_by and host part of Contact FQDN.

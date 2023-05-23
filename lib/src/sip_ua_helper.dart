@@ -133,6 +133,7 @@ class SIPUAHelper extends EventManager {
     _settings.dtmf_mode = uaSettings.dtmfMode;
     _settings.session_timers = uaSettings.sessionTimers;
     _settings.ice_gathering_timeout = uaSettings.iceGatheringTimeout;
+    _settings.max_call_limit = uaSettings.maxCallLimit ?? 2;
 
     try {
       _ua = UA(_settings);
@@ -191,15 +192,18 @@ class SIPUAHelper extends EventManager {
         //   _notifyCallStateListeners(
         //       event, CallState(CallStateEnum.CALL_INITIATION));
         // }
-        if (session.direction == 'incoming') {
-          // Set event handlers.
-          session.addAllEventHandlers(
-              buildCallOptions()['eventHandlers'] as EventManager);
+        if (_calls.length < _settings.max_call_limit) {
+          if (session.direction == 'incoming') {
+            // Set event handlers.
+            session.addAllEventHandlers(
+                buildCallOptions()['eventHandlers'] as EventManager);
+          }
+          _calls[event.id] =
+              Call(event.id, session, CallStateEnum.CALL_INITIATION);
+          _notifyCallStateListeners(
+              event, CallState(CallStateEnum.CALL_INITIATION));
         }
-        _calls[event.id] =
-            Call(event.id, session, CallStateEnum.CALL_INITIATION);
-        _notifyCallStateListeners(
-            event, CallState(CallStateEnum.CALL_INITIATION));
+
       });
 
       _ua!.on(EventNewMessage(), (EventNewMessage event) {
@@ -474,6 +478,9 @@ class Call {
       }else if(tag == "BLIND_TRANSFER"){
         Map<String, dynamic> options = {"cause": "blindtransfer"};
         _session.terminate(options);
+      } else if (tag == "COMPLETE_TRANSFER") {
+        Map<String, dynamic> options = {"cause": "complete_transfer"};
+        _session.terminate(options);
       }
       else{
         _session.terminate();
@@ -712,7 +719,7 @@ class UaSettings {
   String? password;
   String? ha1;
   String? displayName;
-
+  int? maxCallLimit;
   /// DTMF mode, in band (rfc2833) or out of band (sip info)
   DtmfMode dtmfMode = DtmfMode.INFO;
 
