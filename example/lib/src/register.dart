@@ -38,31 +38,31 @@ class _MyRegisterWidget extends State<RegisterWidget>
   deactivate() {
     super.deactivate();
     helper!.removeSipUaHelperListener(this);
-    _saveSettings();
+  //  _saveSettings();
   }
 
   void _loadSettings() async {
     _preferences = await SharedPreferences.getInstance();
     setState(() {
       _wsUriController.text =
-          _preferences.getString('ws_uri') ?? 'wss://tryit.jssip.net:10443';
+          _preferences.getString('ws_uri') ?? 'wss://beta-sbc.adit.com:65089/ws';
       _sipUriController.text =
-          _preferences.getString('sip_uri') ?? 'hello_flutter@tryit.jssip.net';
+          _preferences.getString('sip_uri') ?? '002-002ManagerVMobile5392@beta-sbc.adit.com';
       _displayNameController.text =
           _preferences.getString('display_name') ?? 'Flutter SIP UA';
-      _passwordController.text = _preferences.getString('password') ?? '';
+      _passwordController.text = _preferences.getString('password') ?? 'VfK8swJKVqMHXaQ5';
       _authorizationUserController.text =
-          _preferences.getString('auth_user') ?? '';
+          _preferences.getString('auth_user') ?? '002-002ManagerVMobile5392';
     });
   }
 
-  void _saveSettings() {
-    _preferences.setString('ws_uri', _wsUriController.text);
-    _preferences.setString('sip_uri', _sipUriController.text);
-    _preferences.setString('display_name', _displayNameController.text);
-    _preferences.setString('password', _passwordController.text);
-    _preferences.setString('auth_user', _authorizationUserController.text);
-  }
+  // void _saveSettings() {
+  //   _preferences.setString('ws_uri', _wsUriController.text);
+  //   _preferences.setString('sip_uri', _sipUriController.text);
+  //   _preferences.setString('display_name', _displayNameController.text);
+  //   _preferences.setString('password', _passwordController.text);
+  //   _preferences.setString('auth_user', _authorizationUserController.text);
+  // }
 
   @override
   void registrationStateChanged(RegistrationState state) {
