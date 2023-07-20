@@ -29,6 +29,8 @@ class SIPUAHelper extends EventManager {
   Settings _settings = Settings();
   UaSettings? _uaSettings;
   final Map<String?, Call> _calls = <String?, Call>{};
+  Map<String?, Call> get activeCalls => _calls;
+  List<Call> get onlyCalls => _calls.values.toList();
 
   RegistrationState _registerState =
       RegistrationState(state: RegistrationStateEnum.NONE);
@@ -139,6 +141,7 @@ class SIPUAHelper extends EventManager {
     _settings.dtmf_mode = uaSettings.dtmfMode;
     _settings.session_timers = uaSettings.sessionTimers;
     _settings.ice_gathering_timeout = uaSettings.iceGatheringTimeout;
+    _settings.max_call_limit = uaSettings.maxCallLimit ?? 2;
     _settings.session_timers_refresh_method =
         uaSettings.sessionTimersRefreshMethod;
 
@@ -188,15 +191,29 @@ class SIPUAHelper extends EventManager {
       _ua!.on(EventNewRTCSession(), (EventNewRTCSession event) {
         logger.d('newRTCSession => $event');
         RTCSession session = event.session!;
-        if (session.direction == 'incoming') {
-          // Set event handlers.
-          session.addAllEventHandlers(
-              buildCallOptions()['eventHandlers'] as EventManager);
+        // if (_calls.length < 1) {
+        //   if (session.direction == 'incoming') {
+        //     // Set event handlers.
+        //     session.addAllEventHandlers(
+        //         buildCallOptions()['eventHandlers'] as EventManager);
+        //   }
+        //   _calls[event.id] =
+        //       Call(event.id, session, CallStateEnum.CALL_INITIATION);
+        //   _notifyCallStateListeners(
+        //       event, CallState(CallStateEnum.CALL_INITIATION));
+        // }
+        if (_calls.length < _settings.max_call_limit) {
+          if (session.direction == 'incoming') {
+            // Set event handlers.
+            session.addAllEventHandlers(
+                buildCallOptions()['eventHandlers'] as EventManager);
+          }
+          _calls[event.id] =
+              Call(event.id, session, CallStateEnum.CALL_INITIATION);
+          _notifyCallStateListeners(
+              event, CallState(CallStateEnum.CALL_INITIATION));
         }
-        _calls[event.id] =
-            Call(event.id, session, CallStateEnum.CALL_INITIATION);
-        _notifyCallStateListeners(
-            event, CallState(CallStateEnum.CALL_INITIATION));
+
       });
 
       _ua!.on(EventNewMessage(), (EventNewMessage event) {
@@ -460,13 +477,28 @@ class Call {
     _session.answer(options);
   }
 
-  void refer(String target) {
+  void refer(String target,{String tag = "",Map<String, dynamic>? options}) {
     assert(_session != null, 'ERROR(refer): rtc session is invalid!');
-    ReferSubscriber refer = _session.refer(target)!;
+    // ReferSubscriber refer = _session.refer(target)!;
+    ReferSubscriber refer = _session.refer(target,options)!;
     refer.on(EventReferTrying(), (EventReferTrying data) {});
     refer.on(EventReferProgress(), (EventReferProgress data) {});
     refer.on(EventReferAccepted(), (EventReferAccepted data) {
-      _session.terminate();
+
+      if(tag == "PARK"){
+        Map<String, dynamic> options = {"cause": "park"};
+        _session.terminate(options);
+      }else if(tag == "BLIND_TRANSFER"){
+        Map<String, dynamic> options = {"cause": "blindtransfer"};
+        _session.terminate(options);
+      } else if (tag == "COMPLETE_TRANSFER") {
+        Map<String, dynamic> options = {"cause": "complete_transfer"};
+        _session.terminate(options);
+      }
+      else{
+        _session.terminate();
+      }
+
     });
     refer.on(EventReferFailed(), (EventReferFailed data) {});
   }
@@ -709,7 +741,7 @@ class UaSettings {
   String? password;
   String? ha1;
   String? displayName;
-
+  int? maxCallLimit;
   /// DTMF mode, in band (rfc2833) or out of band (sip info)
   DtmfMode dtmfMode = DtmfMode.INFO;
 
