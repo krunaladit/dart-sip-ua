@@ -1,8 +1,10 @@
+// Dart imports:
 import 'dart:convert' show utf8;
 
+// Package imports:
 import 'package:sdp_transform/sdp_transform.dart' as sdp_transform;
 
-import 'package:sip_ua/src/transactions/transaction_base.dart';
+// Project imports:
 import 'constants.dart' as DartSIP_C;
 import 'constants.dart';
 import 'data.dart';
@@ -10,7 +12,8 @@ import 'exceptions.dart' as Exceptions;
 import 'grammar.dart';
 import 'logger.dart';
 import 'name_addr_header.dart';
-import 'transport.dart';
+import 'socket_transport.dart';
+import 'transactions/transaction_base.dart';
 import 'ua.dart';
 import 'uri.dart';
 import 'utils.dart' as utils;
@@ -47,7 +50,9 @@ class OutgoingRequest {
     if (params['route_set'] != null) {
       setHeader('route', params['route_set']);
     } else if (ua.configuration.use_preloaded_route) {
-      setHeader('route', '<${ua.transport!.sip_uri};lr>');
+      if (ua.socketTransport != null) {
+        setHeader('route', '<${ua.socketTransport!.sip_uri};lr>');
+      }
     }
 
     // Via.
@@ -271,10 +276,8 @@ class OutgoingRequest {
     msg += 'User-Agent: $userAgent\r\n';
 
     if (body != null) {
-      logger.d('Outgoing Message: ${body!}');
-      //Here we should calculate the real content length for UTF8
-      List<int> encoded = utf8.encode(body!);
-      int length = encoded.length;
+      logger.d('Outgoing Message: $method body: $body');
+      int length = utf8.encode(body!).length;
       msg += 'Content-Length: $length\r\n\r\n';
       msg += body!;
     } else {
@@ -521,7 +524,7 @@ class IncomingRequest extends IncomingMessage {
   }
   UA? ua;
   URI? ruri;
-  Transport? transport;
+  SocketTransport? transport;
   TransactionBase? server_transaction;
   /**
   * Stateful reply.
@@ -626,6 +629,10 @@ class IncomingRequest extends IncomingMessage {
 
     if (body != null) {
       int length = body.length;
+      int utf8Length = utf8.encode(body).length;
+      if (length != utf8Length) {
+        logger.w('WARNING Non-ASCII character detected in message body');
+      }
 
       response += 'Content-Type: application/sdp\r\n';
       response += 'Content-Length: $length\r\n\r\n';

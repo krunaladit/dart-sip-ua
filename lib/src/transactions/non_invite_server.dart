@@ -1,16 +1,18 @@
+// Dart imports:
 import 'dart:async';
 
+// Project imports:
 import 'package:sip_ua/src/sip_message.dart';
 import '../event_manager/internal_events.dart';
 import '../logger.dart';
+import '../socket_transport.dart';
 import '../timers.dart';
-import '../transport.dart';
 import '../ua.dart';
 import 'transaction_base.dart';
 
 class NonInviteServerTransaction extends TransactionBase {
   NonInviteServerTransaction(
-      UA ua, Transport? transport, IncomingRequest request) {
+      UA ua, SocketTransport? transport, IncomingRequest request) {
     id = request.via_branch;
     this.ua = ua;
     this.transport = transport;

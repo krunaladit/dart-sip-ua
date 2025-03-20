@@ -1,5 +1,7 @@
+// Dart imports:
 import 'dart:async';
 
+// Project imports:
 import 'constants.dart' as DartSIP_C;
 import 'constants.dart';
 import 'event_manager/event_manager.dart';
@@ -9,8 +11,8 @@ import 'logger.dart';
 import 'name_addr_header.dart';
 import 'request_sender.dart';
 import 'sip_message.dart';
+import 'socket_transport.dart';
 import 'timers.dart';
-import 'transport.dart';
 import 'ua.dart';
 import 'uri.dart';
 import 'utils.dart' as utils;
@@ -24,7 +26,7 @@ class UnHandledResponse {
 }
 
 class Registrator {
-  Registrator(UA ua, [Transport? transport]) {
+  Registrator(UA ua, [SocketTransport? transport]) {
     int reg_id = 1; // Force reg_id to 1.
 
     _ua = ua;
@@ -54,7 +56,7 @@ class Registrator {
     _contact += ';+sip.ice';
 
     // Custom headers for REGISTER and un-REGISTER.
-    _extraHeaders = <String>[];
+    _extraHeaders = ua.configuration.register_extra_headers;
 
     // Custom Contact header params for REGISTER and un-REGISTER.
     _extraContactParams = '';
@@ -71,7 +73,7 @@ class Registrator {
   }
 
   late UA _ua;
-  Transport? _transport;
+  SocketTransport? _transport;
   late URI _registrar;
   int? _expires;
   String? _call_id;
@@ -86,7 +88,7 @@ class Registrator {
 
   bool get registered => _registered;
 
-  Transport? get transport => _transport;
+  SocketTransport? get transport => _transport;
 
   void setExtraHeaders(List<String>? extraHeaders) {
     _extraHeaders = extraHeaders ?? <String>[];
@@ -206,7 +208,7 @@ class Registrator {
 
           expires ??= _expires;
 
-          expires = num.tryParse(expires) ?? 0;
+          expires = num.tryParse(expires.toString()) ?? 0;
 
           if (expires < MIN_REGISTER_EXPIRES) {
             expires = MIN_REGISTER_EXPIRES;
@@ -274,11 +276,11 @@ class Registrator {
     request_sender.send();
   }
 
-  void unregister(bool unregister_all) {
+  Future<bool> unregister(bool unregister_all) async {
     if (_registered == false) {
       logger.d('already unregistered');
 
-      return;
+      return true;
     }
 
     _registered = false;
@@ -312,11 +314,14 @@ class Registrator {
         extraHeaders);
 
     EventManager handlers = EventManager();
+    Completer<bool> completer = Completer<bool>();
     handlers.on(EventOnRequestTimeout(), (EventOnRequestTimeout value) {
       _unregistered(null, DartSIP_C.CausesType.REQUEST_TIMEOUT);
+      completer.complete(false);
     });
     handlers.on(EventOnTransportError(), (EventOnTransportError value) {
       _unregistered(null, DartSIP_C.CausesType.CONNECTION_ERROR);
+      completer.complete(false);
     });
     handlers.on(EventOnAuthenticated(), (EventOnAuthenticated response) {
       // Increase the CSeq on authentication.
@@ -327,17 +332,20 @@ class Registrator {
       String status_code = event.response!.status_code.toString();
       if (utils.test2XX(status_code)) {
         _unregistered(event.response);
+        completer.complete(true);
       } else if (utils.test1XX(status_code)) {
         // Ignore provisional responses.
       } else {
         String cause = utils.sipErrorCause(event.response!.status_code);
         _unregistered(event.response, cause);
+        completer.complete(true);
       }
     });
 
     RequestSender request_sender = RequestSender(_ua, request, handlers);
 
     request_sender.send();
+    return completer.future;
   }
 
   void close() {

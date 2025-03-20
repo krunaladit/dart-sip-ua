@@ -1,9 +1,12 @@
+import 'package:dart_sip_ua_example/src/theme_provider.dart';
+import 'package:dart_sip_ua_example/src/user_state/sip_user_cubit.dart';
 import 'package:flutter/foundation.dart'
     show debugDefaultTargetPlatformOverride;
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:provider/provider.dart';
 import 'package:sip_ua/sip_ua.dart';
-
 
 import 'src/about.dart';
 import 'src/callscreen.dart';
@@ -11,10 +14,16 @@ import 'src/dialpad.dart';
 import 'src/register.dart';
 
 void main() {
+  Logger.level = Level.warning;
   if (WebRTC.platformIsDesktop) {
     debugDefaultTargetPlatformOverride = TargetPlatform.fuchsia;
   }
-  runApp(MyApp());
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => ThemeProvider())],
+      child: MyApp(),
+    ),
+  );
 }
 
 typedef PageContentBuilder = Widget Function(
@@ -52,14 +61,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        fontFamily: 'Roboto',
+    return MultiProvider(
+      providers: [
+        Provider<SIPUAHelper>.value(value: _helper),
+        Provider<SipUserCubit>(
+            create: (context) => SipUserCubit(sipHelper: _helper)),
+      ],
+      child: MaterialApp(
+        title: 'Flutter Demo',
+        theme: Provider.of<ThemeProvider>(context).currentTheme,
+        initialRoute: '/',
+        onGenerateRoute: _onGenerateRoute,
       ),
-      initialRoute: '/',
-      onGenerateRoute: _onGenerateRoute,
     );
   }
 }

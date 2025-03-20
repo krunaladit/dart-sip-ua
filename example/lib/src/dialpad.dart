@@ -1,7 +1,11 @@
+import 'package:dart_sip_ua_example/src/theme_provider.dart';
+import 'package:dart_sip_ua_example/src/user_state/sip_user_cubit.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:logger/logger.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sip_ua/sip_ua.dart';
 
@@ -9,9 +13,11 @@ import 'widgets/action_button.dart';
 
 class DialPadWidget extends StatefulWidget {
   final SIPUAHelper? _helper;
+
   DialPadWidget(this._helper, {Key? key}) : super(key: key);
+
   @override
-  _MyDialPadWidget createState() => _MyDialPadWidget();
+  State<DialPadWidget> createState() => _MyDialPadWidget();
 }
 
 class _MyDialPadWidget extends State<DialPadWidget>
@@ -20,6 +26,9 @@ class _MyDialPadWidget extends State<DialPadWidget>
   SIPUAHelper? get helper => widget._helper;
   TextEditingController? _textController;
   late SharedPreferences _preferences;
+  late SipUserCubit currentUserCubit;
+
+  final Logger _logger = Logger();
 
   String? receivedMsg;
 
@@ -46,7 +55,7 @@ class _MyDialPadWidget extends State<DialPadWidget>
 
   Future<Widget?> _handleCall(BuildContext context,
       [bool voiceOnly = false]) async {
-    var dest = _textController?.text;
+    final dest = _textController?.text;
     if (defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS) {
       await Permission.microphone.request();
@@ -74,7 +83,17 @@ class _MyDialPadWidget extends State<DialPadWidget>
       return null;
     }
 
-    final mediaConstraints = <String, dynamic>{'audio': true, 'video': true};
+    var mediaConstraints = <String, dynamic>{
+      'audio': true,
+      'video': {
+        'mandatory': <String, dynamic>{
+          'minWidth': '640',
+          'minHeight': '480',
+          'minFrameRate': '30',
+        },
+        'facingMode': 'user',
+      }
+    };
 
     MediaStream mediaStream;
 
@@ -84,13 +103,18 @@ class _MyDialPadWidget extends State<DialPadWidget>
       mediaConstraints['video'] = false;
       MediaStream userStream =
           await navigator.mediaDevices.getUserMedia(mediaConstraints);
-      mediaStream.addTrack(userStream.getAudioTracks()[0], addToNative: true);
+      final audioTracks = userStream.getAudioTracks();
+      if (audioTracks.isNotEmpty) {
+        mediaStream.addTrack(audioTracks.first, addToNative: true);
+      }
     } else {
-      mediaConstraints['video'] = !voiceOnly;
+      if (voiceOnly) {
+        mediaConstraints['video'] = !voiceOnly;
+      }
       mediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
     }
 
-    helper!.call(dest, voiceonly: voiceOnly, mediaStream: mediaStream);
+    helper!.call(dest, voiceOnly: voiceOnly, mediaStream: mediaStream);
     _preferences.setString('dest', dest);
     return null;
   }
@@ -112,7 +136,7 @@ class _MyDialPadWidget extends State<DialPadWidget>
   }
 
   List<Widget> _buildNumPad() {
-    var labels = [
+    final labels = [
       [
         {'1': ''},
         {'2': 'abc'},
@@ -152,151 +176,185 @@ class _MyDialPadWidget extends State<DialPadWidget>
   }
 
   List<Widget> _buildDialPad() {
+    Color? textFieldColor =
+        Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5);
+    Color? textFieldFill =
+        Theme.of(context).buttonTheme.colorScheme?.surfaceContainerLowest;
     return [
-      Container(
-          width: 360,
-          child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Container(
-                    width: 360,
-                    child: TextField(
-                      keyboardType: TextInputType.text,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 24, color: Colors.black54),
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                      ),
-                      controller: _textController,
-                    )),
-              ])),
-      Container(
-          width: 300,
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: _buildNumPad())),
-      Container(
-          width: 300,
-          child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: <Widget>[
-                  ActionButton(
-                    icon: Icons.videocam,
-                    onPressed: () => _handleCall(context),
-                  ),
-                  ActionButton(
-                    icon: Icons.dialer_sip,
-                    fillColor: Colors.green,
-                    onPressed: () => _handleCall(context, true),
-                  ),
-                  ActionButton(
-                    icon: Icons.keyboard_arrow_left,
-                    onPressed: () => _handleBackSpace(),
-                    onLongPress: () => _handleBackSpace(true),
-                  ),
-                ],
-              )))
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text('Destination URL'),
+      ),
+      const SizedBox(height: 8),
+      TextField(
+        keyboardType: TextInputType.text,
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 18, color: textFieldColor),
+        maxLines: 2,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: textFieldFill,
+          border: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.blue.withValues(alpha: 0.5)),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.blue.withValues(alpha: 0.5)),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.blue.withValues(alpha: 0.5)),
+            borderRadius: BorderRadius.circular(5),
+          ),
+        ),
+        controller: _textController,
+      ),
+      SizedBox(height: 20),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: _buildNumPad(),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            ActionButton(
+              icon: Icons.videocam,
+              onPressed: () => _handleCall(context),
+            ),
+            ActionButton(
+              icon: Icons.dialer_sip,
+              fillColor: Colors.green,
+              onPressed: () => _handleCall(context, true),
+            ),
+            ActionButton(
+              icon: Icons.keyboard_arrow_left,
+              onPressed: () => _handleBackSpace(),
+              onLongPress: () => _handleBackSpace(true),
+            ),
+          ],
+        ),
+      ),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
+    Color? textColor = Theme.of(context).textTheme.bodyMedium?.color;
+    Color? iconColor = Theme.of(context).iconTheme.color;
+    bool isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+    currentUserCubit = context.watch<SipUserCubit>();
+
     return Scaffold(
-        appBar: AppBar(
-          title: Text("Dart SIP UA Demo"),
-          actions: <Widget>[
-            PopupMenuButton<String>(
-                onSelected: (String value) {
-                  switch (value) {
-                    case 'account':
-                      Navigator.pushNamed(context, '/register');
-                      break;
-                    case 'about':
-                      Navigator.pushNamed(context, '/about');
-                      break;
-                    default:
-                      break;
-                  }
-                },
-                icon: Icon(Icons.menu),
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                      PopupMenuItem(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: <Widget>[
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-                              child: Icon(
-                                Icons.account_circle,
-                                color: Colors.black38,
-                              ),
-                            ),
-                            SizedBox(
-                              child: Text('Account'),
-                              width: 64,
-                            )
-                          ],
-                        ),
-                        value: 'account',
+      appBar: AppBar(
+        title: Text("Dart SIP UA Demo"),
+        actions: <Widget>[
+          PopupMenuButton<String>(
+              onSelected: (String value) {
+                switch (value) {
+                  case 'account':
+                    Navigator.pushNamed(context, '/register');
+                    break;
+                  case 'about':
+                    Navigator.pushNamed(context, '/about');
+                    break;
+                  case 'theme':
+                    final themeProvider = Provider.of<ThemeProvider>(context,
+                        listen:
+                            false); // get the provider, listen false is necessary cause is in a function
+
+                    setState(() {
+                      isDarkTheme = !isDarkTheme;
+                    }); // change the variable
+
+                    isDarkTheme // call the functions
+                        ? themeProvider.setDarkmode()
+                        : themeProvider.setLightMode();
+                    break;
+                  default:
+                    break;
+                }
+              },
+              icon: Icon(Icons.menu),
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                    PopupMenuItem(
+                      child: Row(
+                        children: <Widget>[
+                          Icon(
+                            Icons.account_circle,
+                            color: iconColor,
+                          ),
+                          SizedBox(width: 12),
+                          Text('Account'),
+                        ],
                       ),
-                      PopupMenuItem(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: <Widget>[
-                            Icon(
-                              Icons.info,
-                              color: Colors.black38,
-                            ),
-                            SizedBox(
-                              child: Text('About'),
-                              width: 64,
-                            )
-                          ],
-                        ),
-                        value: 'about',
-                      )
-                    ]),
-          ],
-        ),
-        body: Align(
-            alignment: Alignment(0, 0),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.all(6.0),
-                    child: Center(
-                        child: Text(
-                      'Status: ${EnumHelper.getName(helper!.registerState.state)}',
-                      style: TextStyle(fontSize: 14, color: Colors.black54),
-                    )),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(6.0),
-                    child: Center(
-                        child: Text(
-                      'Received Message: $receivedMsg',
-                      style: TextStyle(fontSize: 14, color: Colors.black54),
-                    )),
-                  ),
-                  Container(
-                      child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: _buildDialPad(),
-                  )),
-                ])));
+                      value: 'account',
+                    ),
+                    PopupMenuItem(
+                      child: Row(
+                        children: <Widget>[
+                          Icon(
+                            Icons.info,
+                            color: iconColor,
+                          ),
+                          SizedBox(width: 12),
+                          Text('About'),
+                        ],
+                      ),
+                      value: 'about',
+                    ),
+                    PopupMenuItem(
+                      child: Row(
+                        children: <Widget>[
+                          Icon(
+                            Icons.info,
+                            color: iconColor,
+                          ),
+                          SizedBox(width: 12),
+                          Text(isDarkTheme ? 'Light Mode' : 'Dark Mode'),
+                        ],
+                      ),
+                      value: 'theme',
+                    )
+                  ]),
+        ],
+      ),
+      body: ListView(
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        children: <Widget>[
+          SizedBox(height: 8),
+          Center(
+            child: Text(
+              'Register Status: ${helper!.registerState.state?.name ?? ''}',
+              style: TextStyle(fontSize: 18, color: textColor),
+            ),
+          ),
+          SizedBox(height: 8),
+          Center(
+            child: Text(
+              'Received Message: $receivedMsg',
+              style: TextStyle(fontSize: 16, color: textColor),
+            ),
+          ),
+          SizedBox(height: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: _buildDialPad(),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   void registrationStateChanged(RegistrationState state) {
-    setState(() {});
+    setState(() {
+      _logger.i("Registration state: ${state.state?.name}");
+    });
   }
 
   @override
@@ -304,9 +362,25 @@ class _MyDialPadWidget extends State<DialPadWidget>
 
   @override
   void callStateChanged(Call call, CallState callState) {
-    if (callState.state == CallStateEnum.CALL_INITIATION) {
-      Navigator.pushNamed(context, '/callscreen', arguments: call);
+    switch (callState.state) {
+      case CallStateEnum.CALL_INITIATION:
+        Navigator.pushNamed(context, '/callscreen', arguments: call);
+        break;
+      case CallStateEnum.FAILED:
+        reRegisterWithCurrentUser();
+        break;
+      case CallStateEnum.ENDED:
+        reRegisterWithCurrentUser();
+        break;
+      default:
     }
+  }
+
+  void reRegisterWithCurrentUser() async {
+    if (currentUserCubit.state == null) return;
+    if (helper!.registered) await helper!.unregister();
+    _logger.i("Re-registering");
+    currentUserCubit.register(currentUserCubit.state!);
   }
 
   @override
@@ -320,4 +394,9 @@ class _MyDialPadWidget extends State<DialPadWidget>
 
   @override
   void onNewNotify(Notify ntf) {}
+
+  @override
+  void onNewReinvite(ReInvite event) {
+    // TODO: implement onNewReinvite
+  }
 }

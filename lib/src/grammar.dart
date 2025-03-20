@@ -1,6 +1,6 @@
-import 'package:parser_error/parser_error.dart';
-
+// Project imports:
 import 'grammar_parser.dart';
+import 'parser_error.dart';
 
 class Grammar {
   static dynamic parse(String input, String startRule) {

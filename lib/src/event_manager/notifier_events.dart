@@ -1,5 +1,5 @@
-import 'package:sip_ua/src/sip_message.dart';
-
+// Project imports:
+import '../sip_message.dart';
 import 'events.dart';
 
 class EventTerminated extends EventType {

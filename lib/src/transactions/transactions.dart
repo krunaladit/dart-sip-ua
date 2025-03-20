@@ -1,5 +1,6 @@
-import 'package:sip_ua/src/sip_message.dart';
+// Project imports:
 import '../constants.dart';
+import '../sip_message.dart';
 import '../timers.dart';
 import 'invite_server.dart';
 import 'non_invite_server.dart';

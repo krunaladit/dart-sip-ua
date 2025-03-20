@@ -1,8 +1,10 @@
+// Dart imports:
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+// Project imports:
 import 'package:sip_ua/src/sip_ua_helper.dart';
 import '../logger.dart';
 
@@ -10,8 +12,8 @@ typedef OnMessageCallback = void Function(dynamic msg);
 typedef OnCloseCallback = void Function(int? code, String? reason);
 typedef OnOpenCallback = void Function();
 
-class WebSocketImpl {
-  WebSocketImpl(this._url, this.messageDelay);
+class SIPUAWebSocketImpl {
+  SIPUAWebSocketImpl(this._url, this.messageDelay);
 
   final String _url;
   WebSocket? _socket;
@@ -62,7 +64,7 @@ class WebSocketImpl {
   }
 
   void close() {
-    _socket!.close();
+    if (_socket != null) _socket!.close();
   }
 
   bool isConnecting() {
@@ -118,7 +120,7 @@ class WebSocketImpl {
       return webSocket;
     } catch (e) {
       logger.e('error $e');
-      throw e;
+      rethrow;
     }
   }
 }

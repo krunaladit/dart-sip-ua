@@ -1,3 +1,4 @@
+// Project imports:
 import 'constants.dart' as DartSIP_C;
 import 'grammar.dart';
 import 'utils.dart' as utils;
@@ -181,7 +182,7 @@ class URI {
       });
     });
 
-    if (headers.length > 0) {
+    if (headers.isNotEmpty) {
       uri += '?${headers.join('&')}';
     }
 

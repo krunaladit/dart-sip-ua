@@ -1,4 +1,4 @@
-import 'package:sip_ua/src/sip_message.dart';
+// Project imports:
 import '../constants.dart' as DartSIP_C;
 import '../constants.dart';
 import '../event_manager/event_manager.dart';
@@ -6,6 +6,7 @@ import '../event_manager/internal_events.dart';
 import '../grammar.dart';
 import '../logger.dart';
 import '../rtc_session.dart' as rtc;
+import '../sip_message.dart';
 import '../uri.dart';
 import '../utils.dart' as Utils;
 
@@ -45,7 +46,7 @@ class ReferSubscriber extends EventManager {
 
     // Referred-By header field.
     String referredBy =
-        'Referred-By: <${_session.ua.configuration.uri.scheme}:${_session.ua.configuration.uri.user}@${_session.ua.configuration.uri.host}>';
+        'Referred-By: <${_session.ua.configuration.uri!.scheme}:${_session.ua.configuration.uri!.user}@${_session.ua.configuration.uri!.host}>';
 
     extraHeaders.add(referredBy);
     extraHeaders.add('Contact: ${_session.contact}');

@@ -1,12 +1,12 @@
-import 'package:sip_ua/sip_ua.dart';
+// Project imports:
+import '../sip_ua.dart';
 import 'constants.dart' as DartSIP_C;
 import 'constants.dart';
 import 'exceptions.dart' as Exceptions;
 import 'grammar.dart';
 import 'logger.dart';
-import 'socket.dart' as Socket;
-import 'transports/websocket_interface.dart';
-import 'uri.dart';
+import 'transports/socket_interface.dart';
+import 'transports/web_socket.dart';
 import 'utils.dart' as Utils;
 
 // Default settings.
@@ -19,8 +19,8 @@ class Settings {
 
   // SIP account.
   String? display_name;
-  dynamic uri;
-  dynamic contact_uri;
+  URI? uri;
+  URI? contact_uri;
   String user_agent = DartSIP_C.USER_AGENT;
 
   // SIP instance id (GRUU).
@@ -38,13 +38,16 @@ class Settings {
   bool? register = true;
   int? register_expires = 600;
   dynamic registrar_server;
+  List<String>? register_extra_headers;
   Map<String, dynamic>? register_extra_contact_uri_params;
 
   // Dtmf mode
   DtmfMode dtmf_mode = DtmfMode.INFO;
 
+  TransportType? transportType;
+
   // Connection options.
-  List<WebSocketInterface>? sockets = <WebSocketInterface>[];
+  List<SIPUASocketInterface>? sockets = <SIPUASocketInterface>[];
   int connection_recovery_max_interval = 30;
   int connection_recovery_min_interval = 2;
   int max_call_limit = 2;
@@ -62,6 +65,8 @@ class Settings {
   /// ICE Gathering Timeout (in millisecond).
   int ice_gathering_timeout = 500;
 
+  bool terminateOnAudioMediaPortZero = false;
+
   /// Sip Message Delay (in millisecond) ( default 0 ).
   int sip_message_delay = 0;
 }
@@ -71,16 +76,17 @@ class Checks {
   Map<String, Null Function(Settings src, Settings? dst)> mandatory =
       <String, Null Function(Settings src, Settings? dst)>{
     'sockets': (Settings src, Settings? dst) {
-      List<WebSocketInterface>? sockets = src.sockets;
+      List<SIPUASocketInterface>? sockets = src.sockets;
+
       /* Allow defining sockets parameter as:
        *  Socket: socket
        *  List of Socket: [socket1, socket2]
        *  List of Objects: [{socket: socket1, weight:1}, {socket: Socket2, weight:0}]
        *  List of Objects and Socket: [{socket: socket1}, socket2]
        */
-      List<WebSocketInterface> copy = <WebSocketInterface>[];
-      if (sockets is List && sockets!.length > 0) {
-        for (WebSocketInterface socket in sockets) {
+      List<SIPUASocketInterface> copy = <SIPUASocketInterface>[];
+      if (sockets is List && sockets!.isNotEmpty) {
+        for (SIPUASocketInterface socket in sockets) {
           copy.add(socket);
         }
       } else {
@@ -90,21 +96,21 @@ class Checks {
       dst!.sockets = copy;
     },
     'uri': (Settings src, Settings? dst) {
-      dynamic uri = src.uri;
       if (src.uri == null && dst!.uri == null) {
         throw Exceptions.ConfigurationError('uri', null);
       }
-      if (!uri.contains(RegExp(r'^sip:', caseSensitive: false))) {
-        uri = '${DartSIP_C.SIP}:$uri';
+      URI uri = src.uri!;
+      if (!uri.toString().contains(RegExp(r'^sip:', caseSensitive: false))) {
+        uri.scheme = DartSIP_C.SIP;
       }
-      dynamic parsed = URI.parse(uri);
-      if (parsed == null) {
-        throw Exceptions.ConfigurationError('uri', parsed);
-      } else if (parsed.user == null) {
-        throw Exceptions.ConfigurationError('uri', parsed);
-      } else {
-        dst!.uri = parsed;
+      dst!.uri = uri;
+    },
+    'transport_type': (Settings src, Settings? dst) {
+      dynamic transportType = src.transportType;
+      if (src.transportType == null && dst!.transportType == null) {
+        throw Exceptions.ConfigurationError('transport type', null);
       }
+      dst!.transportType = transportType;
     }
   };
   Map<String, Null Function(Settings src, Settings? dst)> optional =
@@ -226,6 +232,11 @@ class Checks {
         dst!.registrar_server = parsed;
       }
     },
+    'register_extra_headers': (Settings src, Settings? dst) {
+      List<String>? register_extra_headers = src.register_extra_headers;
+      if (register_extra_headers == null) return;
+      dst?.register_extra_headers = register_extra_headers;
+    },
     'register_extra_contact_uri_params': (Settings src, Settings? dst) {
       Map<String, dynamic>? register_extra_contact_uri_params =
           src.register_extra_contact_uri_params;
@@ -268,6 +279,6 @@ void load(Settings src, Settings? dst) {
     });
   } catch (e) {
     logger.e('Failed to load config: ${e.toString()}');
-    throw e;
+    rethrow;
   }
 }

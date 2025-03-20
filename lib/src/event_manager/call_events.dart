@@ -1,5 +1,8 @@
+// Package imports:
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+// Project imports:
+import '../enums.dart';
 import '../rtc_session.dart';
 import '../sip_message.dart';
 import 'events.dart';
@@ -11,9 +14,10 @@ class CallEvent extends EventType {
 }
 
 class EventNewRTCSession extends CallEvent {
-  EventNewRTCSession({RTCSession? session, String? originator, dynamic request})
+  EventNewRTCSession(
+      {RTCSession? session, Originator? originator, dynamic request})
       : super(session);
-  String? originator;
+  Originator? originator;
   dynamic request;
 }
 
@@ -25,7 +29,7 @@ class EventCallEnded extends CallEvent {
   EventCallEnded(
       {RTCSession? session, this.originator, this.cause, this.request})
       : super(session);
-  String? originator;
+  Originator? originator;
   ErrorCause? cause;
   IncomingRequest? request;
 }
@@ -34,7 +38,7 @@ class EventCallProgress extends CallEvent {
   EventCallProgress(
       {RTCSession? session, this.originator, this.response, this.cause})
       : super(session);
-  String? originator;
+  Originator? originator;
   dynamic response;
   ErrorCause? cause;
 }
@@ -42,18 +46,19 @@ class EventCallProgress extends CallEvent {
 class EventCallConfirmed extends CallEvent {
   EventCallConfirmed({RTCSession? session, this.originator, this.ack})
       : super(session);
-  String? originator;
+  Originator? originator;
   dynamic ack;
 }
 
 class EventCallHold extends CallEvent {
   EventCallHold({RTCSession? session, this.originator}) : super(session);
-  String? originator;
+  Originator? originator;
 }
 
 class EventCallUnhold extends CallEvent {
-  EventCallUnhold({RTCSession? session, String? originator}) : super(session);
-  String? originator;
+  EventCallUnhold({RTCSession? session, Originator? originator})
+      : super(session);
+  Originator? originator;
 }
 
 class EventCallMuted extends CallEvent {
@@ -73,7 +78,7 @@ class EventCallUnmuted extends CallEvent {
 class EventCallAccepted extends CallEvent {
   EventCallAccepted({RTCSession? session, this.originator, this.response})
       : super(session);
-  String? originator;
+  Originator? originator;
   dynamic response;
 }
 
@@ -89,7 +94,7 @@ class EventCallFailed extends CallEvent {
       this.status_line})
       : super(session);
   dynamic response;
-  String? originator;
+  Originator? originator;
   ErrorCause? cause;
   dynamic request;
   String? status_line;
@@ -98,7 +103,7 @@ class EventCallFailed extends CallEvent {
 class EventStream extends CallEvent {
   EventStream({RTCSession? session, this.originator, this.stream})
       : super(session);
-  String? originator;
+  Originator? originator;
   MediaStream? stream;
 }
 

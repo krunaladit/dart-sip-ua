@@ -1,6 +1,9 @@
+// Package imports:
+import 'package:test/test.dart';
+
+// Project imports:
 import 'package:sip_ua/src/name_addr_header.dart';
 import 'package:sip_ua/src/uri.dart';
-import 'package:test/test.dart';
 
 List<void Function()> testFunctions = <void Function()>[
   () => test('Class: URI', () {

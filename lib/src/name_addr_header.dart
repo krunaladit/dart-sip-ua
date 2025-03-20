@@ -1,3 +1,4 @@
+// Project imports:
 import 'grammar.dart';
 import 'uri.dart';
 import 'utils.dart';
@@ -89,7 +90,7 @@ class NameAddrHeader {
 
   @override
   String toString() {
-    String body = (_display_name != null && _display_name!.length > 0)
+    String body = (_display_name != null && _display_name!.isNotEmpty)
         ? '"${_quote(_display_name!)}" '
         : '';
 
