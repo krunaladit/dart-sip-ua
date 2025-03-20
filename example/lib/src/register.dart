@@ -123,9 +123,9 @@ class _MyRegisterWidget extends State<RegisterWidget>
       _alert(context, "SIP URI");
     }
 
-    _saveSettings();
+    // _saveSettings();
 
-       currentUser.register(SipUser(
+    currentUser.register(SipUser(
         selectedTransport: _selectedTransport,
         wsExtraHeaders: _wsExtraHeaders,
         sipUri: _sipUriController.text,

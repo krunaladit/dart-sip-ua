@@ -41,7 +41,9 @@ class SIPUAHelper extends EventManager {
   Settings _settings = Settings();
   UaSettings? _uaSettings;
   final Map<String?, Call> _calls = <String?, Call>{};
+
   Map<String?, Call> get activeCalls => _calls;
+
   List<Call> get onlyCalls => _calls.values.toList();
 
   RegistrationState _registerState =
@@ -248,21 +250,21 @@ class SIPUAHelper extends EventManager {
         logger.d('newRTCSession => $event');
         RTCSession session = event.session!;
         if (_calls.length < _settings.max_call_limit) {
-        if (session.direction == Direction.incoming) {
-          // Set event handlers.
-          session.addAllEventHandlers(
-              buildCallOptions()['eventHandlers'] as EventManager);
-        }
-        bool hasVideo = session.data?['video'] ?? false;
+          if (session.direction == Direction.incoming) {
+            // Set event handlers.
+            session.addAllEventHandlers(
+                buildCallOptions()['eventHandlers'] as EventManager);
+          }
+          bool hasVideo = session.data?['video'] ?? false;
 
-        _calls[event.id] =
-            Call(event.id, session, CallStateEnum.CALL_INITIATION, !hasVideo);
-        _notifyCallStateListeners(
-            event,
-            CallState(CallStateEnum.CALL_INITIATION,
-                video: session.data?['video']));
+          _calls[event.id] =
+              Call(event.id, session, CallStateEnum.CALL_INITIATION, !hasVideo);
+          _notifyCallStateListeners(
+              event,
+              CallState(CallStateEnum.CALL_INITIATION,
+                  video: session.data?['video']));
+        }
       });
-      }
 
       _ua!.on(EventNewMessage(), (EventNewMessage event) {
         logger.d('newMessage => $event');
@@ -544,11 +546,14 @@ enum CallStateEnum {
 
 class Call {
   Call(this._id, this._session, this.state, this.voiceOnly);
+
   final String? _id;
   final RTCSession _session;
 
   String? get id => _id;
+
   RTCPeerConnection? get peerConnection => _session.connection;
+
   RTCSession get session => _session;
   CallStateEnum state;
   bool voiceOnly;
@@ -561,28 +566,25 @@ class Call {
     _session.answer(options);
   }
 
-  void refer(String target,{String tag = "",Map<String, dynamic>? options}) {
+  void refer(String target, {String tag = "", Map<String, dynamic>? options}) {
     assert(_session != null, 'ERROR(refer): rtc session is invalid!');
     // ReferSubscriber refer = _session.refer(target)!;
-    ReferSubscriber refer = _session.refer(target,options)!;
+    ReferSubscriber refer = _session.refer(target, options)!;
     refer.on(EventReferTrying(), (EventReferTrying data) {});
     refer.on(EventReferProgress(), (EventReferProgress data) {});
     refer.on(EventReferAccepted(), (EventReferAccepted data) {
-
-      if(tag == "PARK"){
-        Map<String, dynamic> options = {"cause": "park"};
+      if (tag == 'PARK') {
+        Map<String, dynamic> options = {'cause': 'park'};
         _session.terminate(options);
-      }else if(tag == "BLIND_TRANSFER"){
-        Map<String, dynamic> options = {"cause": "blindtransfer"};
+      } else if (tag == 'BLIND_TRANSFER') {
+        Map<String, dynamic> options = {'cause': 'blindtransfer'};
         _session.terminate(options);
-      } else if (tag == "COMPLETE_TRANSFER") {
-        Map<String, dynamic> options = {"cause": "complete_transfer"};
+      } else if (tag == 'COMPLETE_TRANSFER') {
+        Map<String, dynamic> options = {'cause': 'complete_transfer'};
         _session.terminate(options);
-      }
-      else{
+      } else {
         _session.terminate();
       }
-
     });
     refer.on(EventReferFailed(), (EventReferFailed data) {});
   }
@@ -743,6 +745,7 @@ class CallState {
       this.stream,
       this.cause,
       this.refer});
+
   CallStateEnum state;
   ErrorCause? cause;
   Originator? originator;
@@ -761,6 +764,7 @@ enum RegistrationStateEnum {
 
 class RegistrationState {
   RegistrationState({this.state, this.cause});
+
   RegistrationStateEnum? state;
   ErrorCause? cause;
 }
@@ -774,12 +778,14 @@ enum TransportStateEnum {
 
 class TransportState {
   TransportState(this.state, {this.cause});
+
   TransportStateEnum state;
   ErrorCause? cause;
 }
 
 class SIPMessageRequest {
   SIPMessageRequest(this.message, this.originator, this.request);
+
   dynamic request;
   Originator? originator;
   Message? message;
@@ -787,21 +793,28 @@ class SIPMessageRequest {
 
 abstract class SipUaHelperListener {
   void transportStateChanged(TransportState state);
+
   void registrationStateChanged(RegistrationState state);
+
   void callStateChanged(Call call, CallState state);
+
   //For SIP message coming
   void onNewMessage(SIPMessageRequest msg);
+
   void onNewNotify(Notify ntf);
+
   void onNewReinvite(ReInvite event);
 }
 
 class Notify {
   Notify({this.request});
+
   IncomingRequest? request;
 }
 
 class ReInvite {
   ReInvite({this.hasVideo, this.hasAudio, this.sdp, this.accept, this.reject});
+
   bool? hasVideo;
   bool? hasAudio;
   Map<String, dynamic>? sdp;
@@ -908,6 +921,7 @@ class UaSettings {
   TransportType? transportType;
 
   int? maxCallLimit;
+
   /// DTMF mode, in band (rfc2833) or out of band (sip info)
   DtmfMode dtmfMode = DtmfMode.INFO;
 
