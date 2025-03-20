@@ -62,22 +62,23 @@ class _MyRegisterWidget extends State<RegisterWidget>
   void deactivate() {
     super.deactivate();
     helper!.removeSipUaHelperListener(this);
-  //  _saveSettings();
+    //  _saveSettings();
   }
 
   void _loadSettings() async {
     _preferences = await SharedPreferences.getInstance();
     setState(() {
-      _portController.text = '5060';
-      _wsUriController.text =
-          _preferences.getString('ws_uri') ?? 'wss://beta-sbc.adit.com:65089/ws';
-      _sipUriController.text =
-          _preferences.getString('sip_uri') ?? '002-002ManagerVMobile5392@beta-sbc.adit.com';
+      _portController.text = '5060'; //5060
+      _wsUriController.text = _preferences.getString('ws_uri') ??
+          'wss://wrtc5.adit.com:65089/ws'; //wss://beta-sbc.adit.com:65089/ws
+      _sipUriController.text = _preferences.getString('sip_uri') ??
+          '001-001KrunalDoshi1196@wrtc1.adit.com'; //002-002ManagerVMobile5392@beta-sbc.adit.com
       _displayNameController.text =
           _preferences.getString('display_name') ?? 'Flutter SIP UA';
-      _passwordController.text = _preferences.getString('password') ?? 'VfK8swJKVqMHXaQ5';
+      _passwordController.text = _preferences.getString('password') ??
+          '9tqs58EVszcNmvS2'; //VfK8swJKVqMHXaQ5
       _authorizationUserController.text =
-          _preferences.getString('auth_user') ?? '002-002ManagerVMobile5392';
+          _preferences.getString('auth_user') ?? '001-001KrunalDoshi1196';
     });
   }
 
