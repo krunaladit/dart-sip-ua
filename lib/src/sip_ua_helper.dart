@@ -262,6 +262,7 @@ class SIPUAHelper extends EventManager {
             session.addAllEventHandlers(
                 buildCallOptions()['eventHandlers'] as EventManager);
           }
+          bool hasVideo = session.data?['video'] ?? false;
           _calls[event.id] =
               Call(event.id, session, CallStateEnum.CALL_INITIATION, !hasVideo);
           _notifyCallStateListeners(
