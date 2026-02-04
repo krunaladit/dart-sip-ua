@@ -263,9 +263,11 @@ class SIPUAHelper extends EventManager {
                 buildCallOptions()['eventHandlers'] as EventManager);
           }
           _calls[event.id] =
-              Call(event.id, session, CallStateEnum.CALL_INITIATION);
+              Call(event.id, session, CallStateEnum.CALL_INITIATION, !hasVideo);
           _notifyCallStateListeners(
-              event, CallState(CallStateEnum.CALL_INITIATION,video: session.data?['video']));
+              event,
+              CallState(CallStateEnum.CALL_INITIATION,
+                  video: session.data?['video']));
         }
 
       });
