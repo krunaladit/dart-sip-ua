@@ -743,7 +743,8 @@ class UA extends EventManager {
           sub.receiveRequest(request);
         } else {
           logger.d('received NOTIFY request for a non existent subscription');
-          request.reply(481, 'Subscription does not exist');
+          //request.reply(481, 'Subscription does not exist');
+           request.reply(200);
         }
       }
 
