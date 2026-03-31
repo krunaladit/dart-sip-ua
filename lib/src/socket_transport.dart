@@ -170,6 +170,12 @@ class SocketTransport {
    */
 
   void _reconnect(bool error) {
+    // Cancel any existing recovery timer to prevent duplicate reconnect attempts.
+    if (_recovery_timer != null) {
+      clearTimeout(_recovery_timer);
+      _recovery_timer = null;
+    }
+
     _recover_attempts = _recover_attempts + 1;
 
     num k = ((Math.randomDouble() * pow(2, _recover_attempts)) + 1).floor();
@@ -250,6 +256,13 @@ class SocketTransport {
 
   void _onDisconnect(
       SIPUASocketInterface socket, bool error, int? closeCode, String? reason) {
+    // If transport is currently connecting, this disconnect is from
+    // cleaning up an old socket — do not reset status or schedule reconnect.
+    if (status == TransportStatus.connecting) {
+      logger.d('_onDisconnect ignored: transport is currently connecting');
+      return;
+    }
+
     status = TransportStatus.disconnected;
     ondisconnect(
         socket,

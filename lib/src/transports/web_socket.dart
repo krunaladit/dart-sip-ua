@@ -81,7 +81,16 @@ class SIPUAWebSocket extends SIPUASocketInterface {
       return;
     }
     if (_ws != null) {
-      disconnect();
+      // Clean up old socket without triggering ondisconnect callback,
+      // which would schedule a duplicate reconnect timer.
+      _closed = true;
+      _connected = false;
+      try {
+        _ws!.close();
+      } catch (error) {
+        logger.e('connect() | error closing old WebSocket: $error');
+      }
+      _ws = null;
     }
     logger.d('connecting to WebSocket $_url');
     try {
