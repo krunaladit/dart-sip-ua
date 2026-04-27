@@ -242,6 +242,11 @@ class Checks {
       if (register_extra_headers == null) return;
       dst?.register_extra_headers = register_extra_headers;
     },
+    'provisional_extra_headers': (Settings src, Settings? dst) {
+      List<String>? provisional_extra_headers = src.provisional_extra_headers;
+      if (provisional_extra_headers == null) return;
+      dst?.provisional_extra_headers = provisional_extra_headers;
+    },
     'register_extra_contact_uri_params': (Settings src, Settings? dst) {
       Map<String, dynamic>? register_extra_contact_uri_params =
           src.register_extra_contact_uri_params;
