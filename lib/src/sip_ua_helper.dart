@@ -178,6 +178,7 @@ class SIPUAHelper extends EventManager {
     _settings.register = uaSettings.register;
     _settings.register_expires = uaSettings.register_expires;
     _settings.register_extra_headers = uaSettings.registerParams.extraHeaders;
+    _settings.provisional_extra_headers = uaSettings.provisionalExtraHeaders;
     _settings.register_extra_contact_uri_params =
         uaSettings.registerParams.extraContactUriParams;
     _settings.dtmf_mode = uaSettings.dtmfMode;
@@ -915,6 +916,11 @@ class UaSettings {
 
   /// Mainly used for RFC8599 Push Notification Support
   RegisterParams registerParams = RegisterParams();
+
+  /// Extra headers to add to provisional (180 Ringing) responses for incoming calls.
+  /// Useful for signaling to the SIP proxy that this device handles SIP CANCEL locally
+  /// (e.g. `X-Push-Suppress: 1`) so the proxy can skip redundant cancel pushes.
+  List<String>? provisionalExtraHeaders;
 
   /// `User Agent` field for sip message.
   String? userAgent;

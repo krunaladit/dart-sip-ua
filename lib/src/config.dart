@@ -40,6 +40,9 @@ class Settings {
   List<String>? register_extra_headers;
   Map<String, dynamic>? register_extra_contact_uri_params;
 
+  // Extra headers to add to provisional (180 Ringing) responses for incoming calls.
+  List<String>? provisional_extra_headers;
+
   // Dtmf mode
   DtmfMode dtmf_mode = DtmfMode.INFO;
 

@@ -453,7 +453,12 @@ class RTCSession extends EventManager implements Owner {
     }
 
     // Reply 180.
-    request.reply(180, null, <dynamic>['Contact: $_contact']);
+    final List<dynamic> _provHeaders = <dynamic>['Contact: $_contact'];
+    final List<String>? _extraProv = _ua.configuration.provisional_extra_headers;
+    if (_extraProv != null && _extraProv.isNotEmpty) {
+      _provHeaders.addAll(_extraProv);
+    }
+    request.reply(180, null, _provHeaders);
 
     // Fire 'progress' event.
     // TODO(cloudwebrtc): Document that 'response' field in 'progress' event is null for incoming calls.
