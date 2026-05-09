@@ -197,7 +197,7 @@ class UA extends EventManager {
     String target,
     String eventName,
     String accept, [
-    int expires = 900,
+    int expires = 300,
     String? contentType,
     String? allowEvents,
     Map<String, dynamic> requestParams = const <String, dynamic>{},
